@@ -104,21 +104,21 @@ app.get("/veiculos/:id/valor", (req, res) => {
 
 // REGISTRA A SAÍDA
 app.post("/veiculos/:id/saida", (req, res) => {
-    const indice = VEICULOS.find(v => v.id === Number(req.params.id))
+    const indice = VEICULOS.findIndex(v => v.id === Number(req.params.id))
     if (indice === -1) {
         return res.status(404).json({ msg: "Veículo não encontrado" }
         )
     };
 
     const veiculo = VEICULOS[indice];
-    const said = new Date();
-    const calculo = calcularValor(veiculo, entrada, saida);
+    const saida = new Date();
+    const calculo = calcularValor(veiculo.entrada, saida);
 
     const registro = {
         ...veiculo,
         saida: saida.toISOString(),
-        horasCobradas: calcularValor.horasCobradas,
-        valorPago: calcularValor.valor
+        horasCobradas: calculo.horasCobradas,
+        valorPago: calculo.valor
     };
     HISTORICO.push(registro);
     VEICULOS.splice(indice, 1);
@@ -132,7 +132,7 @@ app.post("/veiculos/:id/saida", (req, res) => {
 // ATUALIZA VEÍCULOS
 app.put("/veiculos/:id", (req, res) => {
     const veiculo = VEICULOS.find((v) => v.id === Number(req.params.id));
-    if (veiculo) return res.status(404).json({ msg: "Veículo não encontrado" });
+    if (!veiculo) return res.status(404).json({ msg: "Veículo não encontrado" });
 
     const { placa, modelo, cor } = req.body;
 
@@ -144,24 +144,24 @@ app.put("/veiculos/:id", (req, res) => {
 
     const novaPlaca = placa.trim().toUpperCase();
 
-    if(VEICULOS.some((v) => v.placa === novaPlaca && v.id !== novaPlaca)){
-        res.status(400).json({erro: "Placa já cadastrada"})
+    if (VEICULOS.some((v) => v.placa === novaPlaca && v.id !== novaPlaca)) {
+        res.status(400).json({ erro: "Placa já cadastrada" })
     }
 
     veiculo.placa = novaPlaca;
     veiculo.modelo = modelo.trim();
     veiculo.cor = cor.trim();
 
-    return res.status(200).json({msg: "Veículo atualizado"});
+    return res.status(200).json({ msg: "Veículo atualizado" });
 });
 
 // HISTÓRICO
-app.get("/historico", (req, res)=>{
-    res.json({total: HISTORICO.length, HISTORICO});
+app.get("/historico", (req, res) => {
+    res.json({ total: HISTORICO.length, HISTORICO });
 });
 
 //RELATÓRIO
-app.get("/faturamento", (req, res)=>{
+app.get("/faturamento", (req, res) => {
     const faturamento = HISTORICO.reduce(
         (total, item) => total + item.valorPago, 0
     );
@@ -172,6 +172,16 @@ app.get("/faturamento", (req, res)=>{
     })
 })
 
+// CANCELAR A ENTRADA
+app.delete("/veiculos/:id", (req, res)=> {
+    const indice = VEICULOS.findIndex((v) => v.id === Number(req.params.id))
+    if(indice === -1) return res.status(404).json({erro: "Veiculo não encontrado"});
+
+    const [removido] = VEICULOS.splice(indice, 1);
+    return res.json({msg: "Registro cancelado!", removido});
+    
+})
+    
 // INICIA O SERVIDOR
 app.listen(PORT, () => {
     console.log(`Servidor rodando em http://localhost:${PORT}`);
